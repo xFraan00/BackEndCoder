@@ -1,39 +1,37 @@
-const fs = require("fs");
+import fs from 'fs';
 
-class Cart {
+export class Cart {
     constructor(id, products) {
         this.id = id;
         this.products = products;
     }
 }
 
-class CartManager {
+export class CartManager {
     constructor() {
-        this.path = "cart.json";
+        this.path = 'carts.json';
     }
 
-    async readCart() {
+    async readCarts() {
         try {
-            const data = await fs.promises.readFile(this.path, "utf8");
+            const data = await fs.promises.readFile(this.path, 'utf8');
             return JSON.parse(data);
         } catch (error) {
-            console.log("Hubo un error al leer la lista de Carritos", error);
-            return [];
+            console.error('Hubo un error al intentar leer la lista de producto:', error);
         }
     }
 
     async addCart() {
         try {
-            const listCart = await this.readCart();
-            let autoId = listCart.length + 1;
-            const findCartId = listCart.find(cart => cart.id === autoId);
-
-            if (findCartId) {
+            const listCarts = await this.readCarts();
+            let autoId = listCarts.length + 1;
+            const findCid = listCarts.find(cart => cart.id === autoId);
+            if (findCid) {
                 autoId = autoId + 1;
             }
             const newCart = new Cart(autoId, []);
-            listCart.push(newCart);
-            await fs.promises.writeFile(this.path, JSON.stringify(listCart));
+            listCarts.push(newCart);
+            await fs.promises.writeFile(this.path, JSON.stringify(listCarts));
             return newCart;
         } catch (error) {
             console.log(error);
@@ -41,43 +39,39 @@ class CartManager {
     }
 
     async getProductsFromCart(id) {
+        const listCarts = await this.readCarts();
         try {
-            const listCart = await this.readCart();
-            const cart = listCart.find(cart => cart.id === id);
-            return cart ? cart.products : [];
+            const cart = listCarts.find(cart => cart.id === id);
+            return cart.products;
         } catch (error) {
-            console.log("Hubo un error al obtener los productos del carrito", error);
-            return [];
+            console.log('Hubo un error a obtener los productos del carrito', error);
         }
     }
 
-    async addProductToCart(cartId, pId) {
+    async addProductToCart(cid, pid) {
+        const listCarts = await this.readCarts();
+        const cart = listCarts.find(cart => cart.id === cid);
         try {
-            const listCart = await this.readCart();
-            let cart = listCart.find(cart => cart.id === cartId);
-
-            if (!cart) {
-                cart = await this.addCart();
-            }
-
-            const productIndex = cart.products.findIndex(item => item.product === pId);
-
-            if (productIndex !== -1) {
-                cart.products[productIndex].quantity++;
+            if (cart) {
+                const product = cart.products.find(item => item.product === pid);
+                if (product) {
+                    product.quantity++;
+                } else {
+                    const newProductToCart = {
+                        "product": pid,
+                        "quantity": 1,
+                    };
+                    cart.products.push(newProductToCart);
+                }
+                await fs.promises.writeFile(this.path, JSON.stringify(listCarts));
             } else {
-                const newProductCart = {
-                    "product": pId,
-                    "quantity": 1,
-                };
-                cart.products.push(newProductCart);
+                console.log('El carrito no existe, pero se creo uno nuevo');
+                await this.addCart(cid);
+                await this.addProductToCart(cid, pid);
             }
-
-            await fs.promises.writeFile(this.path, JSON.stringify(listCart));
             return cart;
         } catch (error) {
-            console.log("Hubo un error al agregar el producto al carrito", error);
+            console.log('Hubo un error al agregar el producto al carrito', error);
         }
     }
 }
-
-module.exports = { Cart, CartManager };

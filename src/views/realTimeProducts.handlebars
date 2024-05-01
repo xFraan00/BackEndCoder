@@ -1,0 +1,107 @@
+<div class="container">
+    <h1>Productos en Tiempo Real</h1>
+    <div>
+        <div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nombre</th>
+                        <th>Descripción del producto</th>
+                        <th>Precio</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="productList">
+                    {{#each products}}
+                    <tr>
+                        <td>{{this.id}}</td>
+                        <td>{{this.title}}</td>
+                        <td>{{this.description}}</td>
+                        <td>{{this.price}}</td>
+                        <td><button onclick="deleteProduct('{{this.id}}')">Eliminar</button></td>
+                    </tr>
+                    {{/each}}
+                </tbody>
+            </table>
+        </div>
+
+        <div>
+            <div>
+                <div>
+                    <h2>Añadir Producto</h2>
+                    <form id="addProductForm">
+                        <div>
+                            <input type="text" id="title" placeholder="Nombre del Producto" required>
+                        </div>
+                        <div>
+                            <input type="text" id="description" placeholder="Descripción del producto" required>
+                        </div>
+                        <div>
+                            <input type="number" id="price" placeholder="Precio" required>
+                        </div>
+                        <div>
+                            <input type="text" id="thumbnail" placeholder="URL" required>
+                        </div>
+                        <button type="submit">Añadir</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+    const socket = io()
+
+    socket.on('updateProducts', function(products) {
+    const productList = document.getElementById('productList')
+    productList.innerHTML = ''
+    products.forEach(product => {
+        const row = document.createElement('tr')
+        row.innerHTML = `
+        <td>${product.id}</td>
+        <td>${product.title}</td>
+        <td>${product.description}</td>
+        <td>${product.price}</td>
+        <td><button onclick="deleteProduct('${product.id}')">Eliminar</button></td>`
+        productList.appendChild(row)
+        })
+    })
+
+    document.getElementById('addProductForm').addEventListener('submit', function(e) {
+        e.preventDefault()
+        const title = document.getElementById('title').value
+        const description = document.getElementById('description').value
+        const price = document.getElementById('price').value
+        const thumbnail = document.getElementById('thumbnail').value
+        const productId = generateUniqueId()
+        socket.emit('addProduct', { 
+            id: productId, 
+            title: title, 
+            description: description, 
+            price: price, 
+            thumbnail: thumbnail
+            })
+        document.getElementById('title').value = ''
+        document.getElementById('description').value = ''
+        document.getElementById('price').value = ''
+        document.getElementById('thumbnail').value = ''
+    })
+
+    function generateUniqueId() {
+        return '_' + Math.random().toString(36).substr(2, 9)
+    }
+
+
+    function deleteProduct(id) {
+        if (confirm("¿Estas seguro de eliminar este producto?")) {
+            socket.emit('deleteProduct', id)
+        }
+    }
+
+    socket.on('productDeleted', function(productId) {
+        socket.emit('getProducts')
+    })
+</script>
