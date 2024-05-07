@@ -16,7 +16,7 @@ export class Product {
 
 export class ProductManager {
     constructor() {
-        this.path = 'productos.json';
+        this.path = 'products.json';
     }
 
     async readProducts() {
@@ -52,13 +52,24 @@ export class ProductManager {
     }
 
     async getProducts(limit) {
-        const products = await this.readProducts();
-        const arrayGroup = [...products];
-        if (limit) {
-            arrayGroup.length = limit;
+        try {
+            const products = await this.readProducts();
+            
+            if (!products) {
+                return []; 
+            }
+    
+            const arrayGroup = [...products];
+            if (limit) {
+                arrayGroup.length = limit;
+            }
+            return arrayGroup;
+        } catch (error) {
+            console.error("Hubo un error al obtener los productos:", error);
+            return []; 
         }
-        return arrayGroup;
     }
+    
 
     async getProductById(id) {
         try {

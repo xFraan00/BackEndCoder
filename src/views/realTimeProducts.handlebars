@@ -1,107 +1,111 @@
 <div class="container">
     <h1>Productos en Tiempo Real</h1>
     <div>
-        <div>
-            <table>
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Nombre</th>
-                        <th>Descripción del producto</th>
-                        <th>Precio</th>
-                        <th></th>
-                    </tr>
-                </thead>
-                <tbody id="productList">
-                    {{#each products}}
-                    <tr>
-                        <td>{{this.id}}</td>
-                        <td>{{this.title}}</td>
-                        <td>{{this.description}}</td>
-                        <td>{{this.price}}</td>
-                        <td><button onclick="deleteProduct('{{this.id}}')">Eliminar</button></td>
-                    </tr>
-                    {{/each}}
-                </tbody>
-            </table>
-        </div>
-
-        <div>
-            <div>
-                <div>
-                    <h2>Añadir Producto</h2>
-                    <form id="addProductForm">
-                        <div>
-                            <input type="text" id="title" placeholder="Nombre del Producto" required>
-                        </div>
-                        <div>
-                            <input type="text" id="description" placeholder="Descripción del producto" required>
-                        </div>
-                        <div>
-                            <input type="number" id="price" placeholder="Precio" required>
-                        </div>
-                        <div>
-                            <input type="text" id="thumbnail" placeholder="URL" required>
-                        </div>
-                        <button type="submit">Añadir</button>
-                    </form>
-                </div>
-            </div>
-        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nombre</th>
+                    <th>Descripción del producto</th>
+                    <th>Precio</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody id="productList">
+                {{#each products}}
+                <tr>
+                    <td>{{this.id}}</td>
+                    <td>{{this.title}}</td>
+                    <td>{{this.description}}</td>
+                    <td>{{this.price}}</td>
+                    <td><button class="deleteButton">Eliminar</button></td>
+                </tr>
+                {{/each}}
+            </tbody>
+        </table>
+    </div>
+    <div id="newProductForm">
+        <p>Nuevo producto</p>
+        <form>
+            <input type="text" id="title" placeholder="Title"/>
+            <input type="text" id="description"  placeholder="Description"/>
+            <input type="number" id="price"  placeholder="Price"/>
+            <input type="text" id="thumbnail"  placeholder="Thumbnail"/>
+            <input type="text" id="category"  placeholder="Category"/>
+            <input type="text" id="code"  placeholder="Code"/>
+            <input type="number" id="stock"  placeholder="Stock"/>
+        </form>
+        <button id="buttonAdd">Agregar producto</button>
     </div>
 </div>
 
 <script src="/socket.io/socket.io.js"></script>
 <script>
-    const socket = io()
+    const socket = io(); 
 
-    socket.on('updateProducts', function(products) {
-    const productList = document.getElementById('productList')
-    productList.innerHTML = ''
-    products.forEach(product => {
-        const row = document.createElement('tr')
-        row.innerHTML = `
-        <td>${product.id}</td>
-        <td>${product.title}</td>
-        <td>${product.description}</td>
-        <td>${product.price}</td>
-        <td><button onclick="deleteProduct('${product.id}')">Eliminar</button></td>`
-        productList.appendChild(row)
-        })
-    })
+    const listProducts = document.getElementById("productList");
+    const buttonAdd = document.getElementById("buttonAdd");
+    const newProductForm = document.getElementById("newProductForm");
 
-    document.getElementById('addProductForm').addEventListener('submit', function(e) {
-        e.preventDefault()
-        const title = document.getElementById('title').value
-        const description = document.getElementById('description').value
-        const price = document.getElementById('price').value
-        const thumbnail = document.getElementById('thumbnail').value
-        const productId = generateUniqueId()
-        socket.emit('addProduct', { 
-            id: productId, 
-            title: title, 
-            description: description, 
-            price: price, 
-            thumbnail: thumbnail
-            })
-        document.getElementById('title').value = ''
-        document.getElementById('description').value = ''
-        document.getElementById('price').value = ''
-        document.getElementById('thumbnail').value = ''
-    })
+    const inputTitle = document.getElementById("title");
+    const inputDescription = document.getElementById("description");
+    const inputPrice = document.getElementById("price");
+    const inputCode = document.getElementById("code");
+    const inputStock = document.getElementById("stock");
+    const inputCategory= document.getElementById("category");
+    const inputThumbnail = document.getElementById("thumbnail");
 
-    function generateUniqueId() {
-        return '_' + Math.random().toString(36).substr(2, 9)
-    }
+    socket.on('products', data => {
+        listProducts.innerHTML = '';
 
+        data.forEach(product => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${product.id}</td>
+                <td>${product.title}</td>
+                <td>${product.description}</td>
+                <td>${product.price}</td>
+                <td><button class="deleteButton" data-id="${product.id}">Eliminar</button></td>
+            `;
+            listProducts.appendChild(row);
+        });
 
-    function deleteProduct(id) {
-        if (confirm("¿Estas seguro de eliminar este producto?")) {
-            socket.emit('deleteProduct', id)
-        }
-    }
+        const deleteButtons = document.querySelectorAll('.deleteButton');
+        deleteButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const productId = button.getAttribute('data-id');
+                socket.emit('deleteProduct', productId);
+            });
+        });
+    });
 
-    socket.on('productDeleted', function(productId) {
-        socket.emit('getProducts')
-    })
+    buttonAdd.addEventListener('click', () => {
+        const newProduct = {
+            title: inputTitle.value,
+            description: inputDescription.value,
+            code: inputCode.value,
+            price: inputPrice.value,
+            status: true,
+            stock: inputStock.value,
+            category: inputCategory.value,
+            thumbnail: inputThumbnail.value
+        };
+
+        socket.emit('addProduct', newProduct);
+
+        inputTitle.value = '';
+        inputDescription.value = '';
+        inputCode.value = '';
+        inputPrice.value = '';
+        inputStock.value = '';
+        inputCategory.value = '';
+        inputThumbnail.value = '';
+
+        const notification = document.createElement('p');
+        notification.innerText = 'Producto agregado correctamente';
+        newProductForm.appendChild(notification);
+        setTimeout(() => {
+            newProductForm.removeChild(notification);
+        }, 4000);
+    });
 </script>

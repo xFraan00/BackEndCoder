@@ -7,7 +7,7 @@ const newInstance = new ProductManager();
 
 router.get('/realTimeProducts', async (req, res) => {
     try {
-        const productos = await productMngr.getProducts();
+        const productos = await ProductManager.getProducts();
         res.render('home', {productos, length : productos.length > 0 ? true : false});
     } catch (error) {
         res.status(500).json({ error: 'Error al obtener los productos' });   
